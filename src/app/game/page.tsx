@@ -95,7 +95,7 @@ export default function Game() {
             {!game && !gameFound && (
                 <div className="flex flex-col items-center space-y-4">
                     <div className="flex flex-row space-x-2">
-                        <p className="text-2xl font-bold">Game loading</p>
+                        <p className="text-2xl font-bold">Game loading... (It can take some time)</p>
                         <LoadingRing className="w-8 h-8" />
                     </div>
                     <Link href={`/`} className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
