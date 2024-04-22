@@ -27,12 +27,12 @@ export default function Home() {
             <div className="flex flex-col items-center space-y-4">
                 <p className="text-2xl font-bold">Pour jouer :</p>
                 <div className="flex flex-row space-x-8">
-                    {/* <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-col items-center space-y-4">
                         <p className="text-xl font-bold">Créer une partie</p>
                         <Link href="/createGame" className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
                             Créer une partie
                         </Link>
-                    </div> */}
+                    </div>
                     <div className="flex flex-col items-center space-y-4">
                         <p className="text-xl font-bold">Rejoindre une partie</p>
                         <input type="text" name="gameCode" id="gameCode" placeholder="Code de la partie" className="border-2 border-blue-500 rounded p-2 text-black w-[22rem]" value={gameCode} onChange={handleGameCodeChange}/>
@@ -54,6 +54,6 @@ export default function Home() {
     );
 }
 
-function isCompleteUUID(uuid: string): boolean {
+export function isCompleteUUID(uuid: string): boolean {
     return uuid.length === 36;
 }
