@@ -80,6 +80,23 @@ export default function Game() {
         return () => clearInterval(interval);
     }, [game, gameFound, accessible]);
 
+    const startGame = () => {
+        fetch(`${endpointApi}/startGame`, {
+            method: 'POST',
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                setGame(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                setAccessible(false);
+            }
+        );
+    }
+
     return (
         <div className="flex flex-col items-center justify-center h-screen space-y-8 w-screen">
             <h1 className="text-xl font-bold animate-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Undercover - Game</h1>
@@ -112,19 +129,21 @@ export default function Game() {
                         <span className="text-lg italic font-bold">(cliquer pour copier)</span>
                     </h2>
                     {(game && !game.started) && (
-                        <div className="flex flex-col items-center space-y-4">
-                            {game.players.length < 3 ? (
-                                <p className="text-2xl font-bold">Waiting for players...</p>
-                            ) : (
-                                <div className="flex flex-col items-center space-y-4">
-                                    <p className="text-2xl font-bold">Waiting to start...</p>
-                                    {isTheHost && (
-                                        <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
-                                            Start the game
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                        <div>
+                            <div className="flex flex-col items-center space-y-4">
+                                {game.players.length < 3 ? (
+                                    <p className="text-2xl font-bold">Waiting for players...</p>
+                                ) : (
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <p className="text-2xl font-bold">Waiting to start...</p>
+                                        {isTheHost && (
+                                            <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' onClick={startGame}>
+                                                Start the game
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                     <div className="flex flex-col items-center space-y-4">
