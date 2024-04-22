@@ -6,6 +6,7 @@ import { endpointApi } from "../page";
 import useSWR from "swr";
 import { GameObject } from "./types";
 import Link from 'next/link';
+import { LoadingRing } from "../components/loadingring";
 
 export default function Game() {
     // Get arguments from URL gameCode and nickname
@@ -15,6 +16,7 @@ export default function Game() {
     const [game, setGame] = useState(null as GameObject | null);
     const [accessible, setAccessible] = useState(true);
     const [gameFound, setGameFound] = useState(false);
+    const [isTheHost, setIsTheHost] = useState(false);
 
     useSWR(`${endpointApi}/joinGame?gameId=${gameCode}&pseudo=${nickname}`, async (url: string) => {
         const response = await fetch(url, {
@@ -47,7 +49,6 @@ export default function Game() {
     useEffect(() => {
         if (!game) {
             setGameFound(false)
-            console.log("Game not found");
             return;
         }
         const interval = setInterval(() => {
@@ -59,6 +60,17 @@ export default function Game() {
                 .then(data => {
                     console.log(data);
                     setGame(data);
+                    setGameFound(true);
+                    const cookies = document.cookie.split(';');
+                    let playerUUID = '';
+                    cookies.forEach(cookie => {
+                        if (cookie.includes('playerUWUID')) {
+                            playerUUID = cookie.split('=')[1];
+                        }
+                    });
+                    if (data.host.uuid === playerUUID) {
+                        setIsTheHost(true);
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -72,16 +84,20 @@ export default function Game() {
     return (
         <div className="flex flex-col items-center justify-center h-screen space-y-8 w-screen">
             <h1 className="text-xl font-bold animate-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Undercover - Game</h1>
-            {/* If server unreachable don't show the rest of the page */}
             {!accessible && (
                 <div className="flex flex-col items-center space-y-4">
                     <p className="text-2xl font-bold">Server unreachable</p>
+                    <Link href={`/`} className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
+                        Go back
+                    </Link>
                 </div>
             )}
-            {/* If game not found don't show the rest of the page */}
             {!game && !gameFound && (
                 <div className="flex flex-col items-center space-y-4">
-                    <p className="text-2xl font-bold">Game not found</p>
+                    <div className="flex flex-row space-x-2">
+                        <p className="text-2xl font-bold">Game loading</p>
+                        <LoadingRing className="w-8 h-8" />
+                    </div>
                     <Link href={`/`} className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
                         Go back
                     </Link>
@@ -91,26 +107,35 @@ export default function Game() {
                 <div>
                     <h2 className="text-lg font-bold">
                         Game code:
-                        <span className="blur-lg hover:blur-none transition-all" onClick={() => navigator.clipboard.writeText(gameCode!)}>
+                        <span className="mx-1 blur-lg hover:blur-none transition-all" onClick={() => navigator.clipboard.writeText(gameCode!)}>
                             {gameCode}
                         </span>
-                        <span className="text-lg italic font-bold mt-0">(cliquer pour copier)</span>
+                        <span className="text-lg italic font-bold">(cliquer pour copier)</span>
                     </h2>
                     {(game && !game.started) && (
                         <div className="flex flex-col items-center space-y-4">
                             {game.players.length < 3 ? (
                                 <p className="text-2xl font-bold">Waiting for players...</p>
                             ) : (
-                                <p className="text-2xl font-bold">Waiting to start...</p>
+                                <div className="flex flex-col items-center space-y-4">
+                                    <p className="text-2xl font-bold">Waiting to start...</p>
+                                    {isTheHost && (
+                                        <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>
+                                            Start the game
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
-                    <h2 className="text-2xl font-bold">Players:</h2>
-                    <ul className="flex flex-col items-center space-y-4">
-                    {game && game.players.map((player: any) => (
-                        <li key={player.uuid} className="text-xl font-bold">{player.pseudo}</li>
-                    ))}
-                    </ul>
+                    <div className="flex flex-col items-center space-y-4">
+                        <h2 className="text-2xl font-bold">Players:</h2>
+                        <ul className="flex flex-col items-center space-y-2">
+                        {game && game.players.map((player: any) => (
+                            <li key={player.uuid} className="text-xl font-bold">{player.pseudo}</li>
+                        ))}
+                        </ul>
+                    </div>
                 </div>
             )}
             <Footer />
