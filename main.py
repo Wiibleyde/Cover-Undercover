@@ -2,11 +2,14 @@ from modules.utils import csvUtil
 from modules.game import gameObj, playerObj, roleObj
 
 import flask
+from flask_cors import CORS
 import secrets
 import datetime
+import uuid
 
 app = flask.Flask(__name__)
 app.secret_key = secrets.token_urlsafe(16)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 games: list[gameObj.Game] = []
 
 def getGame(gameId:str) -> gameObj.Game:
@@ -69,7 +72,7 @@ def joinGame():
         player = getPlayer(playerUuid)
         if player:
             return "Player already in a game"
-    player = playerObj.Player(pseudo=pseudo)
+    player = playerObj.Player(pseudo=pseudo, uuid=str(uuid.uuid4()))
     game = getGame(gameId)
     if game:
         errMessage = game.addPlayer(player)
