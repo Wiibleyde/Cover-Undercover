@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { LoadingRing } from "../components/loadingring";
 
 export default function Game() {
-    // Get arguments from URL gameCode and nickname
     const searchParams = useSearchParams()
     const gameCode = searchParams.get('gameCode');
     const nickname = searchParams.get('nickname');
