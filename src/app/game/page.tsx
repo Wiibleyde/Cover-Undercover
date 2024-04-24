@@ -6,7 +6,7 @@ import { endpointApi } from "../page";
 import useSWR from "swr";
 import { GameObject } from "./types";
 import Link from 'next/link';
-import { LoadingRing } from "../components/loadingring";
+import { LoadingRing } from "../components/icons/loadingring";
 
 export default function Game() {
     const searchParams = useSearchParams()
@@ -26,7 +26,7 @@ export default function Game() {
         return data;
     }, {
         onSuccess: (data) => {
-            console.log(data);
+            console.log("GAME JOINED:");
             setGame(data);
         }
     });
@@ -99,7 +99,7 @@ export default function Game() {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen space-y-8 w-screen">
-            <h1 className="text-xl font-bold animate-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Undercover - Game</h1>
+            <h1 className="text-2xl font-bold animate-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Undercover - Game</h1>
             {!accessible && (
                 <div className="flex flex-col items-center space-y-4">
                     <p className="text-2xl font-bold">Server unreachable</p>
@@ -123,10 +123,10 @@ export default function Game() {
                 <div>
                     <h2 className="text-lg font-bold">
                         Game code:
-                        <span className="mx-1 blur-lg hover:blur-none transition-all" onClick={() => navigator.clipboard.writeText(gameCode!)}>
+                        <span className="mx-1 blur-lg hover:blur-none transition-all hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>
                             {gameCode}
                         </span>
-                        <span className="text-lg italic font-bold">(cliquer pour copier)</span>
+                        <span className="text-lg italic font-bold hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>(cliquer pour copier)</span>
                     </h2>
                     {(game && !game.started) && (
                         <div>

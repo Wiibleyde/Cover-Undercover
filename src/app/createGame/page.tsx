@@ -1,6 +1,6 @@
 'use client';
 import Footer from "../components/footer";
-import { LoadingRing } from "../components/loadingring";
+import { LoadingRing } from "../components/icons/loadingring";
 import useSWR from "swr";
 import { endpointApi, isCompleteUUID } from "../page";
 import { useState, useEffect } from "react";
