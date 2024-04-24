@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { GameObject } from "./types";
 import Link from 'next/link';
 import { LoadingRing } from "../components/icons/loadingring";
+import { getCookie, setCookie } from "cookies-next";
 
 export default function Game() {
     const searchParams = useSearchParams()
@@ -17,68 +18,88 @@ export default function Game() {
     const [gameFound, setGameFound] = useState(false);
     const [isTheHost, setIsTheHost] = useState(false);
 
-    useSWR(`${endpointApi}/joinGame?gameId=${gameCode}&pseudo=${nickname}`, async (url: string) => {
-        const response = await fetch(url, {
+    useEffect(() => {
+        fetch(`${endpointApi}/joinGame?gameId=${gameCode}&pseudo=${nickname}`, {
             method: 'POST',
             credentials: 'include'
-        });
-        const data = await response.json();
-        return data;
-    }, {
-        onSuccess: (data) => {
-            console.log("GAME JOINED:");
-            setGame(data);
-        }
-    });
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    if (data.error == 'Player already in a game') return;
+                    setAccessible(false);
+                    return;
+                }
+                setGame(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                setAccessible(false);
+            }
+        );
+    }, []);
 
-    useSWR(`${endpointApi}/getCurrentGame`, async (url: string) => {
+    const { data, error, isLoading } = useSWR(`${endpointApi}/getCurrentGame`, async (url: string) => {
         const response = await fetch(url, {
             method: 'GET',
             credentials: 'include'
         });
         const data = await response.json();
+        console.log(data);
         return data;
     }, {
         onSuccess: (data) => {
+            if (data.error) {
+                return;
+            }
             setGame(data);
+            const playerUUID = getCookie('playerUWUID');
+            if (data.host.uuid === playerUUID) {
+                setIsTheHost(true);
+            }
             console.log(data);
         }
     });
 
     useEffect(() => {
-        if (!game) {
-            setGameFound(false)
-            return;
+        if (isLoading) {
+            setGameFound(false);
         }
-        const interval = setInterval(() => {
-            fetch(`${endpointApi}/getCurrentGame`, {
-                method: 'GET',
-                credentials: 'include'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    setGame(data);
-                    setGameFound(true);
-                    const cookies = document.cookie.split(';');
-                    let playerUUID = '';
-                    cookies.forEach(cookie => {
-                        if (cookie.includes('playerUWUID')) {
-                            playerUUID = cookie.split('=')[1];
-                        }
-                    });
-                    if (data.host.uuid === playerUUID) {
-                        setIsTheHost(true);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    setAccessible(false);
-                }
-            );
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [game, gameFound, accessible]);
+        if (error) {
+            setAccessible(false);
+        }
+        if (data) {
+            setGameFound(true);
+        }
+    }, [data, error, isLoading]);
+
+    // useEffect(() => {
+    //     if (!game) {
+    //         setGameFound(false)
+    //         return;
+    //     }
+    //     const interval = setInterval(() => {
+    //         const playerUUID = getCookie('playerUWUID');
+    //         fetch(`${endpointApi}/getCurrentGame`, {
+    //             method: 'GET',
+    //             credentials: 'include'
+    //         })
+    //             .then(response => response.json())
+    //             .then(data => {
+    //                 setGame(data);
+    //                 setGameFound(true);
+    //                 if (data.host.uuid === playerUUID) {
+    //                     setIsTheHost(true);
+    //                 }
+    //             })
+    //             .catch(error => {
+    //                 console.error('Error:', error);
+    //                 setAccessible(false);
+    //             }
+    //         );
+    //     }, 1000);
+    //     return () => clearInterval(interval);
+    // }, [game, gameFound, accessible]);
 
     const startGame = () => {
         fetch(`${endpointApi}/startGame`, {
@@ -88,7 +109,25 @@ export default function Game() {
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                setGame(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                setAccessible(false);
+            }
+        );
+    }
+
+    const leaveGame = () => {
+        fetch(`${endpointApi}/leaveGame`, {
+            method: 'POST',
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                setGame(null);
+                setCookie('playerUWUID', '', { expires: new Date(0) });
+                setCookie('gameUWUID', '', { expires: new Date(0) });
+                window.location.href = '/';
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -121,38 +160,45 @@ export default function Game() {
             )}
             {game && (
                 <div>
-                    <h2 className="text-lg font-bold">
-                        Game code:
-                        <span className="mx-1 blur-lg hover:blur-none transition-all hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>
-                            {gameCode}
-                        </span>
-                        <span className="text-lg italic font-bold hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>(cliquer pour copier)</span>
-                    </h2>
-                    {(game && !game.started) && (
-                        <div>
-                            <div className="flex flex-col items-center space-y-4">
-                                {game.players.length < 3 ? (
-                                    <p className="text-2xl font-bold">Waiting for players...</p>
-                                ) : (
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <p className="text-2xl font-bold">Waiting to start...</p>
-                                        {isTheHost && (
-                                            <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' onClick={startGame}>
-                                                Start the game
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
+                    <div>
+                        <h2 className="text-lg font-bold">
+                            Game code:
+                            <span className="mx-1 blur-lg hover:blur-none transition-all hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>
+                                {gameCode}
+                            </span>
+                            <span className="text-lg italic font-bold hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>(cliquer pour copier)</span>
+                        </h2>
+                        {(game && !game.started) && (
+                            <div>
+                                <div className="flex flex-col items-center space-y-4">
+                                    {game.players.length < 3 ? (
+                                        <p className="text-2xl font-bold">Waiting for players...</p>
+                                    ) : (
+                                        <div className="flex flex-col items-center space-y-4">
+                                            <p className="text-2xl font-bold">Waiting to start...</p>
+                                            {isTheHost && (
+                                                <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' onClick={startGame}>
+                                                    Start the game
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                        )}
+                        <div className="flex flex-col items-center space-y-4">
+                            <h2 className="text-2xl font-bold">Players:</h2>
+                            <ul className="flex flex-col items-center space-y-2">
+                            {game && game.players.map((player: any) => (
+                                <li key={player.uuid} className="text-xl font-bold">{player.pseudo}</li>
+                            ))}
+                            </ul>
                         </div>
-                    )}
-                    <div className="flex flex-col items-center space-y-4">
-                        <h2 className="text-2xl font-bold">Players:</h2>
-                        <ul className="flex flex-col items-center space-y-2">
-                        {game && game.players.map((player: any) => (
-                            <li key={player.uuid} className="text-xl font-bold">{player.pseudo}</li>
-                        ))}
-                        </ul>
+                    </div>
+                    <div className="flex flex-col items-center space-y-4 mt-6">
+                        <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4' onClick={leaveGame}>
+                            Leave the game
+                        </button>
                     </div>
                 </div>
             )}
