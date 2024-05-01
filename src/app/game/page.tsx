@@ -4,10 +4,23 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from 'next/navigation'
 import { endpointApi } from "../page";
 import useSWR from "swr";
-import { GameObject } from "./types";
+import { GameObject, GameState } from "./types";
 import Link from 'next/link';
 import { LoadingRing } from "../components/icons/loadingring";
 import { getCookie, setCookie } from "cookies-next";
+
+let descriptionState: GameState = {
+    "state": "description"
+}
+
+let discussionState: GameState = {
+    "state": "discussion"
+}
+
+let voteState: GameState = {
+    "state": "vote"
+}
+
 
 export default function Game() {
     const searchParams = useSearchParams()
@@ -72,34 +85,6 @@ export default function Game() {
             setGameFound(true);
         }
     }, [data, error, isLoading]);
-
-    // useEffect(() => {
-    //     if (!game) {
-    //         setGameFound(false)
-    //         return;
-    //     }
-    //     const interval = setInterval(() => {
-    //         const playerUUID = getCookie('playerUWUID');
-    //         fetch(`${endpointApi}/getCurrentGame`, {
-    //             method: 'GET',
-    //             credentials: 'include'
-    //         })
-    //             .then(response => response.json())
-    //             .then(data => {
-    //                 setGame(data);
-    //                 setGameFound(true);
-    //                 if (data.host.uuid === playerUUID) {
-    //                     setIsTheHost(true);
-    //                 }
-    //             })
-    //             .catch(error => {
-    //                 console.error('Error:', error);
-    //                 setAccessible(false);
-    //             }
-    //         );
-    //     }, 1000);
-    //     return () => clearInterval(interval);
-    // }, [game, gameFound, accessible]);
 
     const startGame = () => {
         fetch(`${endpointApi}/startGame`, {
@@ -186,13 +171,33 @@ export default function Game() {
                                 </div>
                             </div>
                         )}
+                        {game && game.started && (
+                            <div>
+                                {game && game.gameState === descriptionState && (
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <p className="text-2xl font-bold">Description</p>
+                                        <ul className="text-lg font-bold">
+                                            {game.descPlayData.map((desc: any) => (
+                                                <li key={desc.uuid}>{desc.desc}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <div className="flex flex-col items-center space-y-4">
                             <h2 className="text-2xl font-bold">Players:</h2>
-                            <ul className="flex flex-col items-center space-y-2">
+                            <div className="flex flex-row space-x-4 flex-wrap">
                             {game && game.players.map((player: any) => (
-                                <li key={player.uuid} className="text-xl font-bold">{player.pseudo}</li>
+                                // Make card for each player (sticky to bottom of the screen)
+                                <div key={player.uuid} className="bg-gray-200 p-4 rounded-lg flex flex-col items-center space-y-2 w-40">
+                                    <p className="text-xl font-bold">{player.pseudo}</p>
+                                    {player.eliminated && (
+                                        <p className="text-xl font-bold text-red-500">Eliminated</p>
+                                    )}
+                                </div>
                             ))}
-                            </ul>
+                            </div>
                         </div>
                     </div>
                     <div className="flex flex-col items-center space-y-4 mt-6">
