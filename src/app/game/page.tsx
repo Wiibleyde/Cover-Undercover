@@ -21,7 +21,6 @@ let voteState: GameState = {
     "state": "vote"
 }
 
-
 export default function Game() {
     const searchParams = useSearchParams()
     const gameCode = searchParams.get('gameCode');
@@ -58,11 +57,11 @@ export default function Game() {
             credentials: 'include'
         });
         const data = await response.json();
-        console.log(data);
         return data;
     }, {
         onSuccess: (data) => {
             if (data.error) {
+                console.error(data.error);
                 return;
             }
             setGame(data);
@@ -183,6 +182,21 @@ export default function Game() {
                                         </ul>
                                     </div>
                                 )}
+                                {game && game.gameState === discussionState && (
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <p className="text-2xl font-bold">Discussion</p>
+                                    </div>
+                                )}
+                                {game && game.gameState === voteState && (
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <p className="text-2xl font-bold">Vote</p>
+                                        <ul className="text-lg font-bold">
+                                            {game.voteData.map((vote: any) => (
+                                                <li key={vote.uuid}>{vote.vote}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         )}
                         <div className="flex flex-col items-center space-y-4">
@@ -191,7 +205,7 @@ export default function Game() {
                             {game && game.players.map((player: any) => (
                                 // Make card for each player (sticky to bottom of the screen)
                                 <div key={player.uuid} className="bg-gray-200 p-4 rounded-lg flex flex-col items-center space-y-2 w-40">
-                                    <p className="text-xl font-bold">{player.pseudo}</p>
+                                    <p className="text-xl text-black font-bold">{player.pseudo}</p>
                                     {player.eliminated && (
                                         <p className="text-xl font-bold text-red-500">Eliminated</p>
                                     )}
