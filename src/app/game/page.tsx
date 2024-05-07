@@ -73,6 +73,24 @@ export default function Game() {
         }
     });
 
+    const { persoData, persoError, persoIsLoading } = useSWR(`${endpointApi}/getPersonnalData`, async (url: string) => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        return data;
+    }, {
+        onSuccess: (data) => {
+            if (data.error) {
+                console.error(data.error);
+                return;
+            }
+            console.log("OUIBE",data);
+        }
+    });
+
     useEffect(() => {
         if (isLoading) {
             setGameFound(false);
@@ -172,9 +190,28 @@ export default function Game() {
                         )}
                         {game && game.started && (
                             <div>
-                                {game && game.gameState === descriptionState && (
+                                {game && data.gameState.state === "description" && (
                                     <div className="flex flex-col items-center space-y-4">
                                         <p className="text-2xl font-bold">Description</p>
+                                        <input type="text" name="descriptionGiven" id="descriptionGiven" className="border-2 border-gray-300 p-2 rounded-lg" placeholder="Description de votre mot :" />
+                                        <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' onClick={() => {
+                                            const description = (document.getElementById("descriptionGiven") as HTMLInputElement).value;
+                                            fetch(`${endpointApi}/playDescTurn?desc=${description}`, {
+                                                method: 'POST',
+                                                credentials: 'include'
+                                            })
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    console.log(data);
+                                                })
+                                                .catch(error => {
+                                                    console.error('Error:', error);
+                                                    setAccessible(false);
+                                                }
+                                            );
+                                        }}>
+                                            Send description
+                                        </button>
                                         <ul className="text-lg font-bold">
                                             {game.descPlayData.map((desc: any) => (
                                                 <li key={desc.uuid}>{desc.desc}</li>
@@ -182,12 +219,12 @@ export default function Game() {
                                         </ul>
                                     </div>
                                 )}
-                                {game && game.gameState === discussionState && (
+                                {game && game.gameState.state === "discussion" && (
                                     <div className="flex flex-col items-center space-y-4">
                                         <p className="text-2xl font-bold">Discussion</p>
                                     </div>
                                 )}
-                                {game && game.gameState === voteState && (
+                                {game && game.gameState.state === "vote" && (
                                     <div className="flex flex-col items-center space-y-4">
                                         <p className="text-2xl font-bold">Vote</p>
                                         <ul className="text-lg font-bold">
