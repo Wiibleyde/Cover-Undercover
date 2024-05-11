@@ -9,16 +9,8 @@ import Link from 'next/link';
 import { LoadingRing } from "../components/icons/loadingring";
 import { getCookie, setCookie } from "cookies-next";
 
-let descriptionState: GameState = {
-    "state": "description"
-}
-
-let discussionState: GameState = {
-    "state": "discussion"
-}
-
-let voteState: GameState = {
-    "state": "vote"
+function toLowerCase(str: string) {
+    return str.toLowerCase();
 }
 
 export default function Game() {
@@ -29,6 +21,7 @@ export default function Game() {
     const [accessible, setAccessible] = useState(true);
     const [gameFound, setGameFound] = useState(false);
     const [isTheHost, setIsTheHost] = useState(false);
+    const [playerWord, setPlayerWord] = useState('');
 
     useEffect(() => {
         fetch(`${endpointApi}/joinGame?gameId=${gameCode}&pseudo=${nickname}`, {
@@ -61,7 +54,7 @@ export default function Game() {
     }, {
         onSuccess: (data) => {
             if (data.error) {
-                console.error(data.error);
+                console.error("GLOBAL", data.error);
                 return;
             }
             setGame(data);
@@ -70,24 +63,6 @@ export default function Game() {
                 setIsTheHost(true);
             }
             console.log(data);
-        }
-    });
-
-    const { persoData, persoError, persoIsLoading } = useSWR(`${endpointApi}/getPersonnalData`, async (url: string) => {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const response = await fetch(url, {
-            method: 'GET',
-            credentials: 'include'
-        });
-        const data = await response.json();
-        return data;
-    }, {
-        onSuccess: (data) => {
-            if (data.error) {
-                console.error(data.error);
-                return;
-            }
-            console.log("OUIBE",data);
         }
     });
 
@@ -100,8 +75,27 @@ export default function Game() {
         }
         if (data) {
             setGameFound(true);
+            setGame(data);
         }
     }, [data, error, isLoading]);
+
+    useEffect(() => {
+        if (data) {
+            if (data.error) {
+                console.error("GLOBAL", data.error);
+                return;
+            } else {
+                setGame(data);
+                const playerUUID = getCookie('playerUWUID');
+                const player = data.players.find((player: any) => player.uuid === playerUUID);
+                if (data.started) {
+                    if (player) {
+                        setPlayerWord(data.gameData[toLowerCase(player.role.name)+'Word']);
+                    }
+                }
+            }
+        }
+    }, [data]);
 
     const startGame = () => {
         fetch(`${endpointApi}/startGame`, {
@@ -110,7 +104,20 @@ export default function Game() {
         })
             .then(response => response.json())
             .then(data => {
-                console.log(data);
+                fetch(`${endpointApi}/getCurrentGame`, {
+                    method: 'GET',
+                    credentials: 'include'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        setGame(data);
+                        console.log(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        setAccessible(false);
+                    }
+                );
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -163,14 +170,16 @@ export default function Game() {
             {game && (
                 <div>
                     <div>
-                        <h2 className="text-lg font-bold">
-                            Game code:
-                            <span className="mx-1 blur-lg hover:blur-none transition-all hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>
-                                {gameCode}
-                            </span>
-                            <span className="text-lg italic font-bold hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>(cliquer pour copier)</span>
-                        </h2>
-                        {(game && !game.started) && (
+                        <div className="flex flex-col items-center space-y-4">
+                            <h2 className="text-md font-bold">
+                                Game code:
+                                <span className="mx-1 blur-md hover:blur-none transition-all hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>
+                                    {gameCode}
+                                </span>
+                                <span className="text-sm italic font-bold hover:cursor-pointer" onClick={() => navigator.clipboard.writeText(gameCode!)}>(Click to copy)</span>
+                            </h2>
+                        </div>
+                        {(!game.started) && (
                             <div>
                                 <div className="flex flex-col items-center space-y-4">
                                     {game.players.length < 3 ? (
@@ -188,12 +197,13 @@ export default function Game() {
                                 </div>
                             </div>
                         )}
-                        {game && game.started && (
-                            <div>
+                        {game.started && (
+                            <div className="flex flex-col items-center space-y-4">
+                                <p className="text-2xl font-bold">Your word : {playerWord}</p>
                                 {game && data.gameState.state === "description" && (
-                                    <div className="flex flex-col items-center space-y-4">
+                                    <div>
                                         <p className="text-2xl font-bold">Description</p>
-                                        <input type="text" name="descriptionGiven" id="descriptionGiven" className="border-2 border-gray-300 p-2 rounded-lg" placeholder="Description de votre mot :" />
+                                        <input type="text" name="descriptionGiven" id="descriptionGiven" className="border-2 border-gray-300 p-2 rounded-lg text-black" placeholder="Your description :" />
                                         <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' onClick={() => {
                                             const description = (document.getElementById("descriptionGiven") as HTMLInputElement).value;
                                             fetch(`${endpointApi}/playDescTurn?desc=${description}`, {
@@ -219,12 +229,12 @@ export default function Game() {
                                         </ul>
                                     </div>
                                 )}
-                                {game && game.gameState.state === "discussion" && (
+                                {game.gameState.state === "discussion" && (
                                     <div className="flex flex-col items-center space-y-4">
                                         <p className="text-2xl font-bold">Discussion</p>
                                     </div>
                                 )}
-                                {game && game.gameState.state === "vote" && (
+                                {game.gameState.state === "vote" && (
                                     <div className="flex flex-col items-center space-y-4">
                                         <p className="text-2xl font-bold">Vote</p>
                                         <ul className="text-lg font-bold">
@@ -240,7 +250,6 @@ export default function Game() {
                             <h2 className="text-2xl font-bold">Players:</h2>
                             <div className="flex flex-row space-x-4 flex-wrap">
                             {game && game.players.map((player: any) => (
-                                // Make card for each player (sticky to bottom of the screen)
                                 <div key={player.uuid} className="bg-gray-200 p-4 rounded-lg flex flex-col items-center space-y-2 w-40">
                                     <p className="text-xl text-black font-bold">{player.pseudo}</p>
                                     {player.eliminated && (
