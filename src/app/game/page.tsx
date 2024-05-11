@@ -42,7 +42,7 @@ export default function Game() {
                 setAccessible(false);
             }
         );
-    }, []);
+    }, [gameCode, nickname]);
 
     const { data, error, isLoading } = useSWR(`${endpointApi}/getCurrentGame`, async (url: string) => {
         const response = await fetch(url, {

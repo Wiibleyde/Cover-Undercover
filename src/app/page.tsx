@@ -54,6 +54,6 @@ export default function Home() {
     );
 }
 
-export function isCompleteUUID(uuid: string): boolean {
+function isCompleteUUID(uuid: string): boolean {
     return uuid.length === 36;
 }
