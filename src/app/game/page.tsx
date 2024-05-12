@@ -182,7 +182,7 @@ export default function Game() {
                         {(!game.started) && (
                             <div>
                                 <div className="flex flex-col items-center space-y-4">
-                                    {game.players.length < 3 ? (
+                                    {game.players && game.players.length < 3 ? (
                                         <p className="text-2xl font-bold">Waiting for players...</p>
                                     ) : (
                                         <div className="flex flex-col items-center space-y-4">
@@ -249,7 +249,7 @@ export default function Game() {
                         <div className="flex flex-col items-center space-y-4">
                             <h2 className="text-2xl font-bold">Players:</h2>
                             <div className="flex flex-row space-x-4 flex-wrap">
-                            {game && game.players.map((player: any) => (
+                            {game && game.players && game.players.map((player: any) => (
                                 <div key={player.uuid} className="bg-gray-200 p-4 rounded-lg flex flex-col items-center space-y-2 w-40">
                                     <p className="text-xl text-black font-bold">{player.pseudo}</p>
                                     {player.eliminated && (
